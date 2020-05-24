@@ -70,10 +70,8 @@ class FavoritesTableViewController: UITableViewController {
             favorites.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
     
-            let tb = self.tabBarController as! TabBarController
-            print(tb.test)
-            tb.test = "Favorites"
-            print(tb.test)
+            
+
             updateNavigationButtonState()
         }
     }
@@ -94,14 +92,21 @@ class FavoritesTableViewController: UITableViewController {
     }
     */
 
-    /*
+    
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "ShowNews" {
+            segue.destination.navigationItem.title = "News"
+            segue.destination.navigationItem.largeTitleDisplayMode = .never
+            //let navController = segue.destination as! UINavigationController
+            let newsTableViewController = segue.destination as! NewsTableViewController
+            newsTableViewController.tableView.tableHeaderView = nil
+        }
         // Get the new view controller using segue.destination.
         // Pass the selected object to the new view controller.
     }
-    */
+ 
 
 }
