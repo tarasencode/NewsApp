@@ -113,12 +113,18 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         }
         task.resume()
     }
-
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationItem.hidesSearchBarWhenScrolling = false
+    }
+    
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        
-        
+        navigationItem.hidesSearchBarWhenScrolling = true
     }
+    
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -129,13 +135,18 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         resultSearchController = ({
             let controller = UISearchController(searchResultsController: nil)
             controller.searchResultsUpdater = self
-            controller.dimsBackgroundDuringPresentation = false
-            controller.searchBar.sizeToFit()
-            
-            tableView.tableHeaderView = controller.searchBar
+            controller.obscuresBackgroundDuringPresentation = false
+            controller.searchBar.placeholder = "Type anything"
+            //controller.dimsBackgroundDuringPresentation = false
+            //controller.searchBar.sizeToFit()
+            //controller.hidesNavigationBarDuringPresentation = false
+            //tableView.tableHeaderView = controller.searchBar
+            navigationItem.searchController = controller
+            definesPresentationContext = true
             
             return controller
         })()
+        
         
         // Reload the table
         tableView.reloadData()
@@ -162,6 +173,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         let cell = tableView.dequeueReusableCell(withIdentifier: "NewsCell", for: indexPath) as! NewsCell
 
         let article = news[indexPath.row]
+        cell.id = indexPath.row
         cell.newsTitle.text = article.title?.removeHTMLTag()
         cell.newsDescription.text = article.description?.removeHTMLTag()
         if article.image != nil {
@@ -173,14 +185,21 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     }
     
 
-    /*
+    
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+        if segue.identifier == "ShowArticle" {
+            let articleViewController = segue.destination as! ArticleViewController
+            let cell = sender as! NewsCell
+            
+            articleViewController.articleTitle = news[cell.id].title?.removeHTMLTag()
+            articleViewController.articleContent = news[cell.id].content?.removeHTMLTag()
+            articleViewController.articleData = news[cell.id].image
+            articleViewController.articleAdress = news[cell.id].url
+                print(news[cell.id].title)
+        }
     }
-    */
-
+ 
 }

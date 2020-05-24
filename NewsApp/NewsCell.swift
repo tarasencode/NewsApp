@@ -12,6 +12,7 @@ class NewsCell: UITableViewCell {
     @IBOutlet var newsImage: UIImageView!
     @IBOutlet var newsTitle: UILabel!
     @IBOutlet var newsDescription: UILabel!
+    var id: Int!
     
     override func awakeFromNib() {
         super.awakeFromNib()

@@ -11,9 +11,21 @@ import UIKit
 class FavoritesTableViewController: UITableViewController {
     
     var favorites = [Channel]()
+    var showNewsItem: UIBarButtonItem!
     
-    override func viewWillAppear(_ animated: Bool) {
+
+    
+    override func viewDidAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        
+        print(tabBarController?.selectedIndex)
+
+        if let tabIndex = tabBarController?.selectedIndex,
+                tabIndex == 0 {
+            showChannels()
+        } else {
+            showFavorites()
+        }
         
         if let savedChannels = Channel.loadChannels() {
             favorites = savedChannels.filter {$0.isFavorite == true}
@@ -26,7 +38,10 @@ class FavoritesTableViewController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-       
+        
+        showNewsItem = navigationItem.rightBarButtonItem
+        //self.tabBarController?.selectedIndex = 1
+        
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
 
@@ -34,9 +49,24 @@ class FavoritesTableViewController: UITableViewController {
         
     }
     
+    func showChannels() {
+        navigationItem.title = "Channels"
+//        navigationItem.leftBarButtonItem = nil
+//        navigationItem.rightBarButtonItem = nil
+    }
+    
+    func showFavorites() {
+        navigationItem.title = "Favorites"
+//        navigationItem.rightBarButtonItem = showNewsItem
+//        navigationItem.rightBarButtonItem?.isEnabled = !favorites.isEmpty
+
+    }
+    
+
+    
     func updateNavigationButtonState() {
-        self.navigationItem.rightBarButtonItem?.isEnabled = !favorites.isEmpty
-        self.navigationItem.leftBarButtonItem = (favorites.isEmpty) ? nil:self.editButtonItem
+        navigationItem.rightBarButtonItem?.isEnabled = !favorites.isEmpty
+        navigationItem.leftBarButtonItem = (favorites.isEmpty) ? nil:self.editButtonItem
         
     }
 
@@ -100,9 +130,9 @@ class FavoritesTableViewController: UITableViewController {
         if segue.identifier == "ShowNews" {
             segue.destination.navigationItem.title = "News"
             segue.destination.navigationItem.largeTitleDisplayMode = .never
-            //let navController = segue.destination as! UINavigationController
-            let newsTableViewController = segue.destination as! NewsTableViewController
-            newsTableViewController.tableView.tableHeaderView = nil
+//            segue.destination.navigationItem.searchController = nil
+//            let newsTableViewController = segue.destination as! NewsTableViewController
+//            newsTableViewController.tableView.tableHeaderView = nil
         }
         // Get the new view controller using segue.destination.
         // Pass the selected object to the new view controller.
