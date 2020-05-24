@@ -1,5 +1,5 @@
 //
-//  NewsCell.swift
+//  ArticleCell.swift
 //  NewsApp
 //
 //  Created by oleG on 23/05/2020.
@@ -9,12 +9,11 @@
 import UIKit
 
 
-class NewsCell: UITableViewCell {
+class ArticleCell: UITableViewCell {
+    @IBOutlet var articleImage: UIImageView!
+    @IBOutlet var articleTitle: UILabel!
+    @IBOutlet var articleDescription: UILabel!
     
-    
-    @IBOutlet var newsImage: UIImageView!
-    @IBOutlet var newsTitle: UILabel!
-    @IBOutlet var newsDescription: UILabel!
     var id: Int!
     
     override func awakeFromNib() {

@@ -1,5 +1,5 @@
 //
-//  FavoritesTableViewController.swift
+//  ChannelsTableViewController.swift
 //  NewsApp
 //
 //  Created by oleG on 22/05/2020.
@@ -8,19 +8,22 @@
 
 import UIKit
 
-class FavoritesTableViewController: UITableViewController, ChannelCellDelegate {
+class ChannelsTableViewController: UITableViewController, ChannelCellDelegate {
     
     var favorites = [Channel]()
     var channels = [Channel]()
+    var page: String?
+    
     var showNewsItem: UIBarButtonItem!
     
     func starPressed(sender: ChannelCell) {
         if let indexPath = tableView.indexPath(for: sender) {
             var channel = channels[indexPath.row]
             let toggle = channel.isFavorite ?? false
-            channel.isFavorite = toggle
+            channel.isFavorite = !toggle
             channels[indexPath.row] = channel
             tableView.reloadRows(at: [indexPath], with: .automatic)
+            
             Channel.saveChannels(channels)
         }
     }
@@ -45,7 +48,7 @@ class FavoritesTableViewController: UITableViewController, ChannelCellDelegate {
                 //                print(dataAsString!)
                 //            }
                 let answer = try?
-                    jsonDecoder.decode(ServerAnswer.self, from: data) {
+                    jsonDecoder.decode(ChanelServerAnswer.self, from: data) {
                 completion(answer.sources)
             } else {
                 print("Either no data was returned, or data was notserialized.")
@@ -61,40 +64,42 @@ class FavoritesTableViewController: UITableViewController, ChannelCellDelegate {
         if let tabIndex = tabBarController?.selectedIndex,
                 tabIndex == 0 {
             showChannels()
+            channels = Channel.loadChannels()!
+            page = "channels"
         } else {
             showFavorites()
+            channels = Channel.loadChannels()!
+            favorites = Channel.loadChannels()!.filter {$0.isFavorite == true}
+            page = "favorites"
+            
         }
-        
-        if let savedChannels = Channel.loadChannels() {
-            favorites = savedChannels //.filter {$0.isFavorite == true}
-            tableView.reloadData()
-        } else {
-            // no channels
-        }
+        tableView.reloadData()
         updateNavigationButtonState()
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        if let savedChannels = Channel.loadChannels() {
-            channels = savedChannels
-        } else {
-            UIApplication.shared.isNetworkActivityIndicatorVisible = true
-            fetchChannels { (serverChannels) in
-                DispatchQueue.main.async {
-                    guard let serverChannels = serverChannels else {
-                        UIApplication.shared.isNetworkActivityIndicatorVisible = false
-                        return
-                    }
-                    self.channels = serverChannels
-                    //                    self.tableView.reloadData()
-                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
-                }
-            }
-        }
-        
         showNewsItem = navigationItem.rightBarButtonItem
+        
+//        if let savedChannels = Channel.loadChannels() {
+//            channels = savedChannels
+//        } else {
+//            UIApplication.shared.isNetworkActivityIndicatorVisible = true
+//            fetchChannels { (serverChannels) in
+//                DispatchQueue.main.async {
+//                    guard let serverChannels = serverChannels else {
+//                        UIApplication.shared.isNetworkActivityIndicatorVisible = false
+//                        return
+//                    }
+//                    self.channels = serverChannels
+//                    //                    self.tableView.reloadData()
+//                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
+//                }
+//            }
+//        }
+        
+        
         //self.tabBarController?.selectedIndex = 1
         
         // Uncomment the following line to preserve selection between presentations
@@ -117,6 +122,7 @@ class FavoritesTableViewController: UITableViewController, ChannelCellDelegate {
 
     
     func updateNavigationButtonState() {
+        navigationItem.rightBarButtonItem = (page == "channels") ? nil : showNewsItem
         navigationItem.rightBarButtonItem?.isEnabled = !favorites.isEmpty
         navigationItem.leftBarButtonItem = (favorites.isEmpty) ? nil:self.editButtonItem
         
@@ -126,16 +132,22 @@ class FavoritesTableViewController: UITableViewController, ChannelCellDelegate {
 
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return channels.count
+        return (page == "channels") ? channels.count : favorites.count
     }
 
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "ChannelCell") as? ChannelCell else {
+        guard let cell = tableView.dequeueReusableCell(withIdentifier: "channelCell") as? ChannelCell else {
             fatalError("Could not dequeue a cell")
         }
         
-        let channel = channels[indexPath.row]
+
+        cell.isFavoriteButton.isHidden = (page == "channels") ? false : true
+
+        
+        let channel = (page == "channels") ? channels[indexPath.row] : favorites[indexPath.row]
+        
+        cell.id = channel.id
         cell.nameLabel.text = channel.name
         cell.descriptionLabel.text = channel.description
         cell.isFavoriteButton.isSelected = channel.isFavorite ?? false
@@ -153,9 +165,11 @@ class FavoritesTableViewController: UITableViewController, ChannelCellDelegate {
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
+            let channelIndex = channels.firstIndex(where: {$0.id == favorites[indexPath.row].id})!
+            channels[channelIndex].isFavorite = false
+            Channel.saveChannels(channels)
             favorites.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
-    
             
 
             updateNavigationButtonState()
@@ -185,9 +199,13 @@ class FavoritesTableViewController: UITableViewController, ChannelCellDelegate {
         if segue.identifier == "ShowNews" {
             segue.destination.navigationItem.title = "News"
             segue.destination.navigationItem.largeTitleDisplayMode = .never
-//            segue.destination.navigationItem.searchController = nil
-//            let newsTableViewController = segue.destination as! NewsTableViewController
-//            newsTableViewController.tableView.tableHeaderView = nil
+            let newsTableViewController = segue.destination as! NewsTableViewController
+            newsTableViewController.fromSegue = true
+            var sources = [String]()
+            for favorite in favorites {
+                sources.append(favorite.id)
+            }
+            newsTableViewController.sources = sources.joined(separator: ",")
         }
         // Get the new view controller using segue.destination.
         // Pass the selected object to the new view controller.

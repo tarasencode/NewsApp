@@ -8,7 +8,7 @@
 
 import Foundation
 
-struct ServerAnswer: Codable {
+struct ChanelServerAnswer: Codable {
     var status: String
     var sources: [Channel]
 }
@@ -20,6 +20,33 @@ struct Channel: Codable {
     
     var id: String
     
+
+    
+    static let DocumentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    static let ChannelsURL = DocumentsDirectory.appendingPathComponent("channels").appendingPathExtension("plist")
+//    static let FavoritesURL = DocumentsDirectory.appendingPathComponent("favorites").appendingPathExtension("plist")
+    
+
+
+    static func loadChannels() -> [Channel]? {
+        guard let codedChannels = try? Data(contentsOf: ChannelsURL) else {return nil}
+        let propertyListDecoder = PropertyListDecoder()
+        return try? propertyListDecoder.decode(Array<Channel>.self, from: codedChannels)
+    }
+    
+    static func saveChannels(_ channels: [Channel]) {
+        let propertyListEncoder = PropertyListEncoder()
+        let codedChannels = try? propertyListEncoder.encode(channels)
+        try? codedChannels?.write(to: ChannelsURL, options: .noFileProtection)
+    }
+}
+
+    
+    
+    
+    
+    
+    
 //    enum CodingKeys: String, CodingKey {
 //        case id
 //        case name
@@ -27,17 +54,13 @@ struct Channel: Codable {
 //
 //    }
     
-    static let DocumentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-    static let ChannelsURL = DocumentsDirectory.appendingPathComponent("channels").appendingPathExtension("plist")
-    static let FavoritesURL = DocumentsDirectory.appendingPathComponent("favorites").appendingPathExtension("plist")
-    
 //    init(name: String, description: String, isFavorite: Bool, id: String) {
 //        self.id = id
 //        self.name = name
 //        self.description = description
 //        self.isFavorite = isFavorite
 //    }
-//    
+//
 //    init(from decoder: Decoder) throws {
 //        let valueContainer = try decoder.container(keyedBy:
 //            CodingKeys.self)
@@ -51,18 +74,6 @@ struct Channel: Codable {
 //
 //    }
 
-    static func loadChannels() -> [Channel]? {
-        guard let codedChannels = try? Data(contentsOf: ChannelsURL) else {return nil}
-        let propertyListDecoder = PropertyListDecoder()
-        return try? propertyListDecoder.decode(Array<Channel>.self, from: codedChannels)
-    }
-    
-    static func saveChannels(_ channels: [Channel]) {
-        let propertyListEncoder = PropertyListEncoder()
-        let codedChannels = try? propertyListEncoder.encode(channels)
-        try? codedChannels?.write(to: ChannelsURL, options: .noFileProtection)
-    }
-    
 //    static func loadFavorites() -> [Channel]? {
 //        return nil
 //    }
@@ -74,6 +85,4 @@ struct Channel: Codable {
 //        return [channel1, channel2]
 //        return [Channel]()
 //    }
-    
 
-}
