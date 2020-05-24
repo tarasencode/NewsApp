@@ -188,8 +188,9 @@ second line</string>
                                     <rect key="frame" x="0.0" y="0.0" width="414" height="240"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                     <subviews>
-                                        <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="news-img-1" translatesAutoresizingMaskIntoConstraints="NO" id="0Y8-Wd-LbS">
+                                        <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="0Y8-Wd-LbS">
                                             <rect key="frame" x="20" y="19.5" width="374" height="210.5"/>
+                                            <color key="backgroundColor" red="0.82472127819999996" green="0.82745098039999998" blue="0.8235839023" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                             <constraints>
                                                 <constraint firstAttribute="width" secondItem="0Y8-Wd-LbS" secondAttribute="height" multiplier="16:9" id="Emk-Nz-w5U"/>
                                             </constraints>
@@ -237,7 +238,6 @@ second line</string>
                                     <outlet property="newsDescription" destination="eA1-ak-xnd" id="Fev-mU-2bU"/>
                                     <outlet property="newsImage" destination="0Y8-Wd-LbS" id="irb-HY-AeI"/>
                                     <outlet property="newsTitle" destination="f2i-EV-U0i" id="kz1-Fv-zYE"/>
-                                    <segue destination="CYl-G3-0hB" kind="show" identifier="ShowArticle" id="xUM-YQ-AYU"/>
                                 </connections>
                             </tableViewCell>
                         </prototypes>
@@ -261,7 +261,7 @@ second line</string>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="8Bq-HQ-K1c">
-                                <rect key="frame" x="0.0" y="88" width="414" height="725"/>
+                                <rect key="frame" x="0.0" y="44" width="414" height="818"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="RGv-wI-63N" userLabel="ContentView">
                                         <rect key="frame" x="0.0" y="0.0" width="414" height="322.5"/>
@@ -328,7 +328,7 @@ second line</string>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="8rD-TW-sf0" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="2357.971014492754" y="1095.5357142857142"/>
+            <point key="canvasLocation" x="2538" y="-369"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="85g-rV-I8a">
@@ -45877,7 +45877,6 @@ lJQAKZScACmmCAAppgoAKaYPACmmHQAppiEAKaYoACmmLQAppjoAKaY9ACmmSgAppk8AKaZXACmmWgAp
 pl8AKaZnACmmagAppnwAKaZ/ACmmhAAAAAAAAAQBAAAAAAAAAFkAAAAAAAAAAAAAAAAAKaaGA
 </mutableData>
         </image>
-        <image name="news-img-1" width="1100" height="619"/>
     </resources>
     <inferredMetricsTieBreakers>
         <segue reference="gtS-Fb-E68"/>
