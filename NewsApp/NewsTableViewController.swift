@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import SafariServices
 
 class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     
@@ -74,7 +75,6 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
             guard news[index].urlToImage != nil else {return}
             fetchImage(from: news[index].urlToImage!, completionHandler: { (imageData) in
                 if let data = imageData {
-                    NSLog("\(index)")
                     self.news[index].image = data
                     DispatchQueue.main.async {
                         self.tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
@@ -184,6 +184,14 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         return cell
     }
     
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let url = URL(string: news[indexPath.row].url!)!
+        let config = SFSafariViewController.Configuration.init()
+        config.entersReaderIfAvailable = true
+        let safariVC = SFSafariViewController(url: url, configuration: config)
+        present(safariVC, animated: true, completion: nil)
+        
+    }
 
     
     // MARK: - Navigation
@@ -191,14 +199,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "ShowArticle" {
-            let articleViewController = segue.destination as! ArticleViewController
-            let cell = sender as! NewsCell
-            
-            articleViewController.articleTitle = news[cell.id].title?.removeHTMLTag()
-            articleViewController.articleContent = news[cell.id].content?.removeHTMLTag()
-            articleViewController.articleData = news[cell.id].image
-            articleViewController.articleAdress = news[cell.id].url
-                print(news[cell.id].title)
+
         }
     }
  
