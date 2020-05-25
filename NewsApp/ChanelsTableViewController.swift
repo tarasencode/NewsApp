@@ -49,46 +49,34 @@ class ChannelsTableViewController: UITableViewController {
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-
-        if let tabIndex = tabBarController?.selectedIndex,
-                tabIndex == 0 {
-            showChannels()
-            channels = Channel.loadChannels()!
-            page = "channels"
+        
+        if let savedChannels = Channel.loadChannels() {
+            channels = savedChannels
+            updateNavigationButtonState()
         } else {
-            showFavorites()
-            channels = Channel.loadChannels()!
-            favorites = Channel.loadChannels()!.filter {$0.isFavorite == true}
-            page = "favorites"
-            
+            UIApplication.shared.isNetworkActivityIndicatorVisible = true
+            fetchChannels { (serverChannels) in
+                DispatchQueue.main.async {
+                    guard let serverChannels = serverChannels else {
+                        UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                        return
+                    }
+                    self.channels = serverChannels
+                    self.updateNavigationButtonState()
+                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                }
+            }
         }
-        tableView.reloadData()
-        updateNavigationButtonState()
+
+
+        
     }
     
     override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        tableView.prefetchDataSource = self
+        super.viewDidLoad()        
         
         showNewsItem = navigationItem.rightBarButtonItem
         
-//        if let savedChannels = Channel.loadChannels() {
-//            channels = savedChannels
-//        } else {
-//            UIApplication.shared.isNetworkActivityIndicatorVisible = true
-//            fetchChannels { (serverChannels) in
-//                DispatchQueue.main.async {
-//                    guard let serverChannels = serverChannels else {
-//                        UIApplication.shared.isNetworkActivityIndicatorVisible = false
-//                        return
-//                    }
-//                    self.channels = serverChannels
-//                    //                    self.tableView.reloadData()
-//                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
-//                }
-//            }
-//        }
         
         
         //self.tabBarController?.selectedIndex = 1
@@ -108,6 +96,18 @@ class ChannelsTableViewController: UITableViewController {
 
     
     func updateNavigationButtonState() {
+        if let tabIndex = tabBarController?.selectedIndex,
+            tabIndex == 0 {
+            showChannels()
+            page = "channels"
+        } else {
+            showFavorites()
+            favorites = channels.filter {$0.isFavorite == true}
+            page = "favorites"
+            
+        }
+        tableView.reloadData()
+        
         navigationItem.rightBarButtonItem = (page == "channels") ? nil : showNewsItem
         navigationItem.rightBarButtonItem?.isEnabled = !favorites.isEmpty
         navigationItem.leftBarButtonItem = (favorites.isEmpty) ? nil:self.editButtonItem
@@ -193,12 +193,5 @@ extension ChannelsTableViewController: ChannelCellDelegate {
             
             Channel.saveChannels(channels)
         }
-    }
-}
-
-extension ChannelsTableViewController: UITableViewDataSourcePrefetching {
-    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
-        print("prefetch \(indexPaths)\n")
-        
     }
 }
