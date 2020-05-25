@@ -20,16 +20,18 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
    
     func updateSearchResults(for searchController: UISearchController) {
         NSObject.cancelPreviousPerformRequests(withTarget: self)
+        
         guard let searchString = searchController.searchBar.text,
             searchString != "" else {return}
+        
         let query: [String: String] = [
             "apiKey": "ce1bd0fac4c8486393a3708cceaeb813",
             "q": searchString
         ]
-        self.perform(#selector(self.sendSearchRequest), with: query, afterDelay: 1.5)
+        self.perform(#selector(self.sendRequest), with: query, afterDelay: 1.5)
     }
     
-    @objc func sendSearchRequest(_ query: [String: String]) {
+    @objc func sendRequest(_ query: [String: String]) {
         print(query)
         
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
@@ -39,11 +41,32 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
                     return
                 }
-                self.news = serverNews
+                self.news.append(contentsOf: serverNews)
                 self.downloadImages()
                 self.tableView.reloadData()
             }
         })
+    }
+    
+    func fetchNews(query: [String: String],  completion: @escaping ([Article]?) -> Void) {
+        UIApplication.shared.isNetworkActivityIndicatorVisible = true
+        let baseURL = URL(string: "https://newsapi.org/v2/everything")!
+        
+        
+        let url = baseURL.withQueries(query)!
+        let task = URLSession.shared.dataTask(with: url) { (data,
+            response, error) in
+            let jsonDecoder = JSONDecoder()
+            if let data = data,
+                let answer = try?
+                    jsonDecoder.decode(ArticleServerAnswer.self, from: data) {
+                completion(answer.articles)
+            } else {
+                print("Either no data was returned, or data was notserialized.")
+                completion(nil)
+            }
+        }
+        task.resume()
     }
     
     func fetchImage(from urlString: String, completionHandler: @escaping (_ data: Data?) -> ()) {
@@ -83,26 +106,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         }
     }
     
-    func fetchNews(query: [String: String],  completion: @escaping ([Article]?) -> Void) {
-        UIApplication.shared.isNetworkActivityIndicatorVisible = true
-        let baseURL = URL(string: "https://newsapi.org/v2/everything")!
-        
-        
-        let url = baseURL.withQueries(query)!
-        let task = URLSession.shared.dataTask(with: url) { (data,
-            response, error) in
-            let jsonDecoder = JSONDecoder()
-            if let data = data,
-                let answer = try?
-                    jsonDecoder.decode(ArticleServerAnswer.self, from: data) {
-                completion(answer.articles)
-            } else {
-                print("Either no data was returned, or data was notserialized.")
-                completion(nil)
-            }
-        }
-        task.resume()
-    }
+    
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -115,7 +119,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
             "apiKey": "ce1bd0fac4c8486393a3708cceaeb813",
             "sources": sources
         ]
-        sendSearchRequest(query)
+        sendRequest(query)
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -131,6 +135,9 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        tableView.prefetchDataSource = self
+        
 //        tableView.rowHeight = UITableView.automaticDimension
 //        tableView.estimatedRowHeight = 240
 
@@ -189,3 +196,16 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     }
 
 }
+
+extension NewsTableViewController: UITableViewDataSourcePrefetching {
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        for indexPath in indexPaths {
+            if indexPath.row > 13 {
+                
+            }
+        }
+        print("prefetch \(indexPaths )\n")
+        
+    }
+}
+

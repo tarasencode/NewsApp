@@ -8,7 +8,7 @@
 
 import UIKit
 
-class ChannelsTableViewController: UITableViewController, ChannelCellDelegate {
+class ChannelsTableViewController: UITableViewController {
     
     var favorites = [Channel]()
     var channels = [Channel]()
@@ -16,17 +16,7 @@ class ChannelsTableViewController: UITableViewController, ChannelCellDelegate {
     
     var showNewsItem: UIBarButtonItem!
     
-    func starPressed(sender: ChannelCell) {
-        if let indexPath = tableView.indexPath(for: sender) {
-            var channel = channels[indexPath.row]
-            let toggle = channel.isFavorite ?? false
-            channel.isFavorite = !toggle
-            channels[indexPath.row] = channel
-            tableView.reloadRows(at: [indexPath], with: .automatic)
-            
-            Channel.saveChannels(channels)
-        }
-    }
+
     
     func fetchChannels(completion: @escaping ([Channel]?) -> Void)
     {
@@ -35,7 +25,6 @@ class ChannelsTableViewController: UITableViewController, ChannelCellDelegate {
         
         let query: [String: String] = [
             "apiKey": "ce1bd0fac4c8486393a3708cceaeb813",
-            "country": "gb"
         ]
         
         let url = baseURL.withQueries(query)!
@@ -80,6 +69,8 @@ class ChannelsTableViewController: UITableViewController, ChannelCellDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        tableView.prefetchDataSource = self
+        
         showNewsItem = navigationItem.rightBarButtonItem
         
 //        if let savedChannels = Channel.loadChannels() {
@@ -108,15 +99,10 @@ class ChannelsTableViewController: UITableViewController, ChannelCellDelegate {
     
     func showChannels() {
         navigationItem.title = "Channels"
-//        navigationItem.leftBarButtonItem = nil
-//        navigationItem.rightBarButtonItem = nil
     }
     
     func showFavorites() {
         navigationItem.title = "Favorites"
-//        navigationItem.rightBarButtonItem = showNewsItem
-//        navigationItem.rightBarButtonItem?.isEnabled = !favorites.isEmpty
-
     }
     
 
@@ -157,7 +143,6 @@ class ChannelsTableViewController: UITableViewController, ChannelCellDelegate {
     }
     
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-
         return true
     }
  
@@ -171,26 +156,9 @@ class ChannelsTableViewController: UITableViewController, ChannelCellDelegate {
             favorites.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
             
-
             updateNavigationButtonState()
         }
     }
-    
-    /*
-    // Override to support rearranging the table view.
-    override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-
-    }
-    */
-
-    /*
-    // Override to support conditional rearranging of the table view.
-    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-        // Return false if you do not want the item to be re-orderable.
-        return true
-    }
-    */
-
     
     // MARK: - Navigation
 
@@ -212,4 +180,25 @@ class ChannelsTableViewController: UITableViewController, ChannelCellDelegate {
     }
  
 
+}
+
+extension ChannelsTableViewController: ChannelCellDelegate {
+    func starPressed(sender: ChannelCell) {
+        if let indexPath = tableView.indexPath(for: sender) {
+            var channel = channels[indexPath.row]
+            let toggle = channel.isFavorite ?? false
+            channel.isFavorite = !toggle
+            channels[indexPath.row] = channel
+            tableView.reloadRows(at: [indexPath], with: .automatic)
+            
+            Channel.saveChannels(channels)
+        }
+    }
+}
+
+extension ChannelsTableViewController: UITableViewDataSourcePrefetching {
+    func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
+        print("prefetch \(indexPaths)\n")
+        
+    }
 }
