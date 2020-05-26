@@ -20,19 +20,25 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     var sources: String = ""
     var loadInProgress = false
     var serverNewsCount = 0
+    var previousSearch = ""
    
     func updateSearchResults(for searchController: UISearchController) {
         NSObject.cancelPreviousPerformRequests(withTarget: self)
         
         guard let searchString = searchController.searchBar.text,
+            searchString != previousSearch,
             searchString != "" else {return}
         
         let query: [String: String] = [
             "q": searchString
         ]
+        searchController.obscuresBackgroundDuringPresentation = true
+        previousSearch = searchString
         self.perform(#selector(self.sendRequest), with: query, afterDelay: 1.5)
     }
-    
+    private func searchBarSearchButtonClicked(for searchController: UISearchController) {
+        print("click")
+    }
     @objc func sendRequest(_ query: [String: String]) {
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
         fetchNews(query: query, completion: { (serverNews) in
@@ -101,7 +107,10 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                 fetchNews(query: query, completion: { (serverNews) in
                     DispatchQueue.main.async {
                         UIApplication.shared.isNetworkActivityIndicatorVisible = false
-                        guard let serverNews = serverNews else {return}
+                        guard let serverNews = serverNews else {
+                            self.showError("Can't perform search. Please check your internet connection.")
+                            return
+                        }
                         
                         self.news.append(contentsOf: serverNews)
                         self.downloadImages()
@@ -119,7 +128,10 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                 fetchNews(query: query, completion: { (serverNews) in
                     DispatchQueue.main.async {
                         UIApplication.shared.isNetworkActivityIndicatorVisible = false
-                        guard let serverNews = serverNews else {return}
+                        guard let serverNews = serverNews else {
+                            self.showError("Can't load news. Please check your internet connection.")
+                            return
+                        }
                         
                         self.news.append(contentsOf: serverNews)
                         self.downloadImages()
@@ -145,7 +157,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     }
     
     func fetchImage(from urlString: String, completionHandler: @escaping (_ data: Data?) -> ()) {
-        if let url = URL(string: urlString) {            
+        if let url = URL(string: urlString) {
             let dataTask = URLSession.shared.dataTask(with: url) { (data, response, error) in completionHandler(data) }
             dataTask.resume()
         }
@@ -178,20 +190,6 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         }
     }
     
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        
-        if fromSegue {
-            let query: [String: String] = [
-                "sources": sources
-            ]
-            sendRequest(query)
-        } else {
-            navigationItem.hidesSearchBarWhenScrolling = false
-        }
-    }
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -203,9 +201,8 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                 let controller = UISearchController(searchResultsController: nil)
                 controller.searchResultsUpdater = self
                 controller.obscuresBackgroundDuringPresentation = false
-                controller.searchBar.placeholder = "Type anything"
+                controller.searchBar.placeholder = "What are you looking for?"
                 //controller.dimsBackgroundDuringPresentation = false
-                //controller.searchBar.sizeToFit()
                 //controller.hidesNavigationBarDuringPresentation = false
                 navigationItem.searchController = controller
                 definesPresentationContext = true
@@ -214,6 +211,21 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
             })()
         }
         tableView.prefetchDataSource = self
+        self.clearsSelectionOnViewWillAppear = false
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        if fromSegue {
+            let query: [String: String] = [
+                "sources": sources
+            ]
+            sendRequest(query)
+        } else {
+
+        }
+        navigationItem.hidesSearchBarWhenScrolling = false
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -222,13 +234,20 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         if fromSegue {
             
         } else {
-            navigationItem.hidesSearchBarWhenScrolling = true
+            
         }
+        navigationItem.hidesSearchBarWhenScrolling = true
     }
     
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         fromSegue = false
+    }
+    
+    func showError(_ errorMessage: String) {
+        let alert = UIAlertController(title: "Error", message: errorMessage, preferredStyle: UIAlertController.Style.alert)
+        alert.addAction(UIAlertAction(title: "Ok", style: UIAlertAction.Style.default, handler: nil))
+        self.present(alert, animated: true, completion: nil)
     }
     
     

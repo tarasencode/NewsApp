@@ -9,17 +9,57 @@
 import UIKit
 
 class ChannelsTableViewController: UITableViewController {
+    @IBOutlet var activityIndicator: UIActivityIndicatorView!
+    @IBOutlet var noChannelsLabel: UILabel!
     
     var favorites = [Channel]()
     var channels = [Channel]()
-    var page: String?
     
+    var page: Page = .unset
+    enum Page {
+        case channels
+        case favorites
+        case unset
+    }
     var showNewsItem: UIBarButtonItem!
+    var firstAppear = true
     
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        showNewsItem = navigationItem.rightBarButtonItem
+        navigationItem.rightBarButtonItem = nil
 
+        self.clearsSelectionOnViewWillAppear = false
+    }
     
-    func fetchChannels(completion: @escaping ([Channel]?) -> Void)
-    {
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        activityIndicator.startAnimating()
+        if let savedChannels = Channel.loadChannels() {
+            channels = savedChannels
+            loadFavorites()
+        } else {
+            UIApplication.shared.isNetworkActivityIndicatorVisible = true
+            fetchChannels { (serverChannels) in
+                DispatchQueue.main.async {
+                    self.activityIndicator.stopAnimating()
+                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                    guard let serverChannels = serverChannels else {
+                        self.loadFavorites()
+                        self.showError("Can't load channels. Please check your internet connection.")
+                        return
+                    }
+                    self.channels = serverChannels
+                    Channel.saveChannels(self.channels)
+                    self.loadFavorites()
+                }
+            }
+        }        
+    }
+    
+    func fetchChannels(completion: @escaping ([Channel]?) -> Void) {
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
         let endpointURL = URL(string: "https://newsapi.org/v2/sources")!
         let query = ["":""]
@@ -32,112 +72,74 @@ class ChannelsTableViewController: UITableViewController {
                     jsonDecoder.decode(ChanelServerAnswer.self, from: data) {
                 completion(answer.sources)
             } else {
-                print("Either no data was returned, or data was notserialized.")
                 completion(nil)
             }
         }
         task.resume()
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        
-        if let savedChannels = Channel.loadChannels() {
-            channels = savedChannels
-            updateNavigationButtonState()
-        } else {
-            UIApplication.shared.isNetworkActivityIndicatorVisible = true
-            fetchChannels { (serverChannels) in
-                DispatchQueue.main.async {
-                    guard let serverChannels = serverChannels else {
-                        UIApplication.shared.isNetworkActivityIndicatorVisible = false
-                        return
-                    }
-                    self.channels = serverChannels
-                    self.updateNavigationButtonState()
-                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
-                }
-            }
+    func loadFavorites(){
+        favorites = channels.filter {$0.isFavorite == true}
+        activityIndicator.stopAnimating()
+        if favorites.count > 0,
+                firstAppear {
+            tabBarController!.selectedIndex = 1
         }
-
-
-        
+        firstAppear = false
+        updateState()
     }
     
-    override func viewDidLoad() {
-        super.viewDidLoad()        
-        
-        showNewsItem = navigationItem.rightBarButtonItem
-        
-        
-        
-        //self.tabBarController?.selectedIndex = 1
-        
-        // Uncomment the following line to preserve selection between presentations
-        // self.clearsSelectionOnViewWillAppear = false
-    }
-    
-    func showChannels() {
-        navigationItem.title = "Channels"
-    }
-    
-    func showFavorites() {
-        navigationItem.title = "Favorites"
-    }
-    
-
-    
-    func updateNavigationButtonState() {
-        if let tabIndex = tabBarController?.selectedIndex,
-            tabIndex == 0 {
-            showChannels()
-            page = "channels"
-        } else {
-            showFavorites()
-            favorites = channels.filter {$0.isFavorite == true}
-            page = "favorites"
-            
+    func updateState() {
+        switch tabBarController!.selectedIndex {
+        case 0:
+            navigationItem.title = "Channels"
+            page = .channels
+            navigationItem.leftBarButtonItem = nil
+            navigationItem.rightBarButtonItem = nil
+            noChannelsLabel.text = (channels.count < 1) ? "Channels list is empty" : nil
+        default:
+            navigationItem.title = "Favorites"
+            page = .favorites
+            navigationItem.leftBarButtonItem = self.editButtonItem
+            navigationItem.rightBarButtonItem = showNewsItem
+            navigationItem.rightBarButtonItem?.isEnabled = !favorites.isEmpty
+            noChannelsLabel.text = (favorites.count < 1) ? "Favorites is empty" : nil
         }
         tableView.reloadData()
-        
-        navigationItem.rightBarButtonItem = (page == "channels") ? nil : showNewsItem
-        navigationItem.rightBarButtonItem?.isEnabled = !favorites.isEmpty
-        navigationItem.leftBarButtonItem = (favorites.isEmpty) ? nil:self.editButtonItem
-        
+    }
+    
+    func showError(_ errorMessage: String) {
+        DispatchQueue.main.async {
+            let alert = UIAlertController(title: "Error", message: errorMessage, preferredStyle: UIAlertController.Style.alert)
+            alert.addAction(UIAlertAction(title: "Ok", style: UIAlertAction.Style.default, handler: nil))
+            self.present(alert, animated: true, completion: nil)
+        }
     }
 
     // MARK: - Table view data source
 
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return (page == "channels") ? channels.count : favorites.count
+        return (page == .channels) ? channels.count : favorites.count
     }
-
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(withIdentifier: "channelCell") as? ChannelCell else {
-            fatalError("Could not dequeue a cell")
-        }
+        let cell = tableView.dequeueReusableCell(withIdentifier: "channelCell") as! ChannelCell
+        cell.delegate = self
         
-
-        cell.isFavoriteButton.isHidden = (page == "channels") ? false : true
-
-        
-        let channel = (page == "channels") ? channels[indexPath.row] : favorites[indexPath.row]
-        
+        let channel = (page == .channels) ? channels[indexPath.row] : favorites[indexPath.row]
+        cell.favoriteButton.isHidden = (page == .channels) ? false : true                
         cell.id = channel.id
         cell.nameLabel.text = channel.name
         cell.descriptionLabel.text = channel.description
-        cell.isFavoriteButton.isSelected = channel.isFavorite ?? false
+        cell.favoriteButton.isSelected = channel.isFavorite ?? false
         
-        cell.delegate = self
         return cell
     }
     
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-        return true
+        return (page == .favorites) ? true : false
     }
- 
     
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
@@ -148,13 +150,12 @@ class ChannelsTableViewController: UITableViewController {
             favorites.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
             
-            updateNavigationButtonState()
+            updateState()
         }
     }
     
     // MARK: - Navigation
 
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         if segue.identifier == "ShowNews" {
             segue.destination.navigationItem.title = "News"
@@ -167,12 +168,10 @@ class ChannelsTableViewController: UITableViewController {
             }
             newsTableViewController.sources = sources.joined(separator: ",")
         }
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
     }
- 
-
 }
+
+//MARK: - Extensions
 
 extension ChannelsTableViewController: ChannelCellDelegate {
     func starPressed(sender: ChannelCell) {

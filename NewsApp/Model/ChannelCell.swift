@@ -13,7 +13,7 @@ protocol ChannelCellDelegate: class {
 }
 
 class ChannelCell: UITableViewCell {
-    @IBOutlet var isFavoriteButton: UIButton!
+    @IBOutlet var favoriteButton: UIButton!
     @IBOutlet var nameLabel: UILabel!
     @IBOutlet var descriptionLabel: UILabel!
     

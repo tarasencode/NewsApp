@@ -48,7 +48,7 @@
             </objects>
             <point key="canvasLocation" x="893" y="-356"/>
         </scene>
-        <!--Favorites-->
+        <!--Channels-->
         <scene sceneID="NvW-fO-O6g">
             <objects>
                 <tableViewController id="5rL-HB-t7r" customClass="ChannelsTableViewController" customModule="NewsApp" customModuleProvider="target" sceneMemberID="viewController">
@@ -56,6 +56,28 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <view key="tableFooterView" contentMode="scaleToFill" id="MsX-Tx-Jul" userLabel="activity">
+                            <rect key="frame" x="0.0" y="108" width="375" height="54"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <subviews>
+                                <activityIndicatorView hidden="YES" opaque="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="gray" translatesAutoresizingMaskIntoConstraints="NO" id="Ioq-Zc-8Tm">
+                                    <rect key="frame" x="177.5" y="5" width="20" height="20"/>
+                                </activityIndicatorView>
+                                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Bz6-x9-lgM">
+                                    <rect key="frame" x="187.5" y="51" width="0.0" height="0.0"/>
+                                    <fontDescription key="fontDescription" style="UICTFontTextStyleFootnote"/>
+                                    <color key="textColor" white="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                    <nil key="highlightedColor"/>
+                                </label>
+                            </subviews>
+                            <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            <constraints>
+                                <constraint firstItem="Bz6-x9-lgM" firstAttribute="centerX" secondItem="MsX-Tx-Jul" secondAttribute="centerX" id="9tM-ym-Itn"/>
+                                <constraint firstItem="Ioq-Zc-8Tm" firstAttribute="top" secondItem="MsX-Tx-Jul" secondAttribute="top" constant="5" id="VbH-bw-gdx"/>
+                                <constraint firstAttribute="bottom" secondItem="Bz6-x9-lgM" secondAttribute="bottom" constant="3" id="mVD-Cu-peC"/>
+                                <constraint firstItem="Ioq-Zc-8Tm" firstAttribute="centerX" secondItem="MsX-Tx-Jul" secondAttribute="centerX" id="wWd-cU-EQZ"/>
+                            </constraints>
+                        </view>
                         <prototypes>
                             <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="channelCell" rowHeight="80" id="QVB-QG-zLC" customClass="ChannelCell" customModule="NewsApp" customModuleProvider="target">
                                 <rect key="frame" x="0.0" y="28" width="375" height="80"/>
@@ -108,7 +130,7 @@ second line</string>
                                 </tableViewCellContentView>
                                 <connections>
                                     <outlet property="descriptionLabel" destination="Rl7-CZ-1BJ" id="tzf-XT-Fvr"/>
-                                    <outlet property="isFavoriteButton" destination="1jI-5H-VWh" id="JIH-MD-yJb"/>
+                                    <outlet property="favoriteButton" destination="1jI-5H-VWh" id="JIH-MD-yJb"/>
                                     <outlet property="nameLabel" destination="Duy-nf-b2u" id="isd-k1-fDd"/>
                                 </connections>
                             </tableViewCell>
@@ -118,17 +140,21 @@ second line</string>
                             <outlet property="delegate" destination="5rL-HB-t7r" id="YVR-ic-nEN"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Favorites" id="ZnU-Op-xMs">
+                    <navigationItem key="navigationItem" title="Channels" id="ZnU-Op-xMs">
                         <barButtonItem key="rightBarButtonItem" title="Show News" id="jlr-8I-dgQ">
                             <connections>
                                 <segue destination="385-r6-8Jp" kind="show" identifier="ShowNews" id="gtS-Fb-E68"/>
                             </connections>
                         </barButtonItem>
                     </navigationItem>
+                    <connections>
+                        <outlet property="activityIndicator" destination="Ioq-Zc-8Tm" id="AmC-HH-uDX"/>
+                        <outlet property="noChannelsLabel" destination="Bz6-x9-lgM" id="ez0-uR-tjp"/>
+                    </connections>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Z8Y-Wm-OPg" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1651" y="373"/>
+            <point key="canvasLocation" x="1650.4000000000001" y="372.86356821589209"/>
         </scene>
         <!--Search-->
         <scene sceneID="8Kl-xh-oTs">
