@@ -21,21 +21,13 @@ class ChannelsTableViewController: UITableViewController {
     func fetchChannels(completion: @escaping ([Channel]?) -> Void)
     {
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
-        let baseURL = URL(string: "https://newsapi.org/v2/sources")!
-        
-        let query: [String: String] = [
-            "apiKey": "ce1bd0fac4c8486393a3708cceaeb813",
-        ]
-        
-        let url = baseURL.withQueries(query)!
+        let endpointURL = URL(string: "https://newsapi.org/v2/sources")!
+        let query = ["":""]
+        let url = endpointURL.withQueriesAndAPIkey(query)!
         let task = URLSession.shared.dataTask(with: url) { (data,
             response, error) in
             let jsonDecoder = JSONDecoder()
             if let data = data,
-                //                {
-                //                let dataAsString = String(data: data, encoding: .utf8)
-                //                print(dataAsString!)
-                //            }
                 let answer = try?
                     jsonDecoder.decode(ChanelServerAnswer.self, from: data) {
                 completion(answer.sources)

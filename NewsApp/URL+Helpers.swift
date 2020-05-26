@@ -9,7 +9,9 @@
 import Foundation
 
 extension URL {
-    func withQueries(_ queries: [String: String]) -> URL? {
+    func withQueriesAndAPIkey(_ queries: [String: String]) -> URL? {
+        var queries = queries
+        queries["apiKey"] = "ce1bd0fac4c8486393a3708cceaeb813"
         var components = URLComponents(url: self,
                                        resolvingAgainstBaseURL: true)
         components?.queryItems = queries.map

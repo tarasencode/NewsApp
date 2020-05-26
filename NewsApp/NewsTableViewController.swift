@@ -28,15 +28,12 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
             searchString != "" else {return}
         
         let query: [String: String] = [
-            "apiKey": "ce1bd0fac4c8486393a3708cceaeb813",
             "q": searchString
         ]
         self.perform(#selector(self.sendRequest), with: query, afterDelay: 1.5)
     }
     
     @objc func sendRequest(_ query: [String: String]) {
-        print(query)
-        
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
         fetchNews(query: query, completion: { (serverNews) in
             DispatchQueue.main.async {
@@ -44,91 +41,189 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
                     return
                 }
-                self.news.append(contentsOf: serverNews)
+                self.news = serverNews
                 self.downloadImages()
                 self.tableView.reloadData()
+                self.tableView.scrollToRow(at: IndexPath(row: 0, section: 0), at: .top, animated: false)
             }
         })
     }
     
     func fetchNews(query: [String: String],  completion: @escaping ([Article]?) -> Void) {
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
-        let baseURL = URL(string: "https://newsapi.org/v2/everything")!
-        
-        
-        let url = baseURL.withQueries(query)!
+        let endpointURL = URL(string: "https://newsapi.org/v2/everything")!
+        let url = endpointURL.withQueriesAndAPIkey(query)!
+        print("Request:\n\(url)")
         let task = URLSession.shared.dataTask(with: url) { (data,
             response, error) in
             let jsonDecoder = JSONDecoder()
             if let data = data,
-                let answer = try?
-                    jsonDecoder.decode(ArticleServerAnswer.self, from: data) {
+                let answer = try? jsonDecoder.decode(ArticleServerAnswer.self, from: data) {
+                    print("\nStatus: \(answer.status) Total results: \(answer.totalResults)")
+                    guard answer.totalResults > 0 else { // 0 articles on channel
+                    print("Warning: No articles on this channel")
+                    completion(nil)
+                    return
+                }
                 completion(answer.articles)
                 self.serverNewsCount = answer.totalResults
             } else {
-                print("Either no data was returned, or data was notserialized.")
+                print("Request:\n\(url)\nResponse:\n\(String(describing: response))\nError:\n\(String(describing: error))")
                 completion(nil)
             }
         }
         task.resume()
     }
     
-    func fetchImage(from urlString: String, completionHandler: @escaping (_ data: Data?) -> ()) {
-        let session = URLSession.shared
-        let url = URL(string: urlString)
-        
-        let dataTask = session.dataTask(with: url!) { (data, response, error) in
-            if error != nil {
-                print("Error fetching the image!")
-                completionHandler(nil)
-            } else {
-                completionHandler(data)
+    
+    func requestNewPage(indexPaths: [IndexPath]) {
+        guard loadInProgress == false,
+            news.count < 100, // FIXME: limit or free API subscription
+            serverNewsCount != news.count else {return}
+        if indexPaths.first!.row >= news.count - 1 {
+            loadInProgress = true
+            activityIndicator.startAnimating()
+            
+            let currentPage = (news.count - 1) / 20 + 1
+            
+            if !fromSegue { // From Search tab
+                guard let searchString = resultSearchController.searchBar.text,
+                    searchString != "" else {
+                        activityIndicator.stopAnimating()
+                        return
+                }
+                
+                let query: [String: String] = [
+                    "q": searchString,
+                    "page" : String(currentPage + 1)
+                ]
+                UIApplication.shared.isNetworkActivityIndicatorVisible = true
+                fetchNews(query: query, completion: { (serverNews) in
+                    DispatchQueue.main.async {
+                        UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                        guard let serverNews = serverNews else {return}
+                        
+                        self.news.append(contentsOf: serverNews)
+                        self.downloadImages()
+                        self.appendNewRows()
+                        self.loadInProgress = false
+                        self.activityIndicator.stopAnimating()
+                    }
+                })
+            } else { // From Show News Segue
+                let query: [String: String] = [
+                    "sources": sources,
+                    "page" : String(currentPage + 1)
+                ]
+                UIApplication.shared.isNetworkActivityIndicatorVisible = true
+                fetchNews(query: query, completion: { (serverNews) in
+                    DispatchQueue.main.async {
+                        UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                        guard let serverNews = serverNews else {return}
+                        
+                        self.news.append(contentsOf: serverNews)
+                        self.downloadImages()
+                        self.appendNewRows()
+                        self.loadInProgress = false
+                        self.activityIndicator.stopAnimating()
+                    }
+                })
             }
         }
-        
-        dataTask.resume()
+    }
+    
+    func appendNewRows() {
+        let lastRowInTable = tableView.numberOfRows(inSection: 0) - 1
+        var newIndexPaths = [IndexPath]()
+        for index in lastRowInTable + 1...news.count - 1 {
+            newIndexPaths.append(IndexPath(row: index, section: 0))
+        }
+        UIView.setAnimationsEnabled(false)
+        tableView.insertRows(at: newIndexPaths, with: .none)
+        UIView.setAnimationsEnabled(true)
+
+    }
+    
+    func fetchImage(from urlString: String, completionHandler: @escaping (_ data: Data?) -> ()) {
+        if let url = URL(string: urlString) {            
+            let dataTask = URLSession.shared.dataTask(with: url) { (data, response, error) in completionHandler(data) }
+            dataTask.resume()
+        }
     }
     
     func downloadImages() {
-        
         for index in news.indices {
-            guard news[index].urlToImage != nil else {return}
+            guard news[index].urlToImage != nil,
+                news[index].urlToImage != "null",
+                news[index].urlToImage != "",
+                    news[index].image == nil else {continue}
+            UIApplication.shared.isNetworkActivityIndicatorVisible = true
             fetchImage(from: news[index].urlToImage!, completionHandler: { (imageData) in
                 if let data = imageData {
                     self.news[index].image = data
                     DispatchQueue.main.async {
-                        guard self.tableView.numberOfRows(inSection: 0) != 0 else {return}
+                        guard self.tableView.numberOfRows(inSection: 0) != 0,
+                                index < 20 else {return} // reload rows from the first page
                         self.tableView.reloadRows(at: [IndexPath(row: index, section: 0)], with: .automatic)
-                        if index == self.news.indices.last {
-                            UIApplication.shared.isNetworkActivityIndicatorVisible = false
-                        }
                     }
                 } else {
-                    print("Error loading image");
+                    print("Error fetching image: \n\(self.news[index].urlToImage!)")
+                }
+                DispatchQueue.main.async {
+                    if index == self.news.indices.last {
+                        UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                    }
                 }
             })
         }
     }
     
     
-    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationItem.hidesSearchBarWhenScrolling = false
         
-        print(fromSegue)
-        guard fromSegue else {return}
+        if fromSegue {
+            let query: [String: String] = [
+                "sources": sources
+            ]
+            sendRequest(query)
+        } else {
+            navigationItem.hidesSearchBarWhenScrolling = false
+        }
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
         
-        let query: [String: String] = [
-            "apiKey": "ce1bd0fac4c8486393a3708cceaeb813",
-            "sources": sources
-        ]
-        sendRequest(query)
+        if fromSegue {
+            
+        } else {
+            
+            resultSearchController = ({
+                let controller = UISearchController(searchResultsController: nil)
+                controller.searchResultsUpdater = self
+                controller.obscuresBackgroundDuringPresentation = false
+                controller.searchBar.placeholder = "Type anything"
+                //controller.dimsBackgroundDuringPresentation = false
+                //controller.searchBar.sizeToFit()
+                //controller.hidesNavigationBarDuringPresentation = false
+                navigationItem.searchController = controller
+                definesPresentationContext = true
+                
+                return controller
+            })()
+        }
+        tableView.prefetchDataSource = self
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        navigationItem.hidesSearchBarWhenScrolling = true
+        
+        if fromSegue {
+            
+        } else {
+            navigationItem.hidesSearchBarWhenScrolling = true
+        }
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -137,41 +232,11 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     }
     
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        tableView.prefetchDataSource = self
-        
-//        tableView.rowHeight = UITableView.automaticDimension
-//        tableView.estimatedRowHeight = 240
-
-        
-        resultSearchController = ({
-            let controller = UISearchController(searchResultsController: nil)
-            controller.searchResultsUpdater = self
-            controller.obscuresBackgroundDuringPresentation = false
-            controller.searchBar.placeholder = "Type anything"
-            //controller.dimsBackgroundDuringPresentation = false
-            //controller.searchBar.sizeToFit()
-            //controller.hidesNavigationBarDuringPresentation = false
-            //tableView.tableHeaderView = controller.searchBar
-            navigationItem.searchController = controller
-            definesPresentationContext = true
-            
-            return controller
-        })()
-        
-        tableView.reloadData()
-        
-    }
 
     // MARK: - Table view data source
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        
-
-            return news.count
-
+           return news.count
     }
 
     
@@ -184,8 +249,9 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         cell.articleDescription.text = article.description?.removeHTMLTag()
         if article.image != nil {
             cell.articleImage.image = UIImage(data: article.image!)
+        } else {
+            cell.articleImage.image = nil
         }
-        
 
         return cell
     }
@@ -203,24 +269,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
 
 extension NewsTableViewController: UITableViewDataSourcePrefetching {
     func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
-        guard loadInProgress == false,
-                serverNewsCount != news.count else {return} //MARK: заменить на isAnimating?
-        if indexPaths.first!.row >= news.count - 1 {
-            loadInProgress = true
-            activityIndicator.startAnimating()
-            print("i need next page \(indexPaths )\n")
-            if !fromSegue { // From Search tab
-                guard let searchString = resultSearchController.searchBar.text,
-                    searchString != "" else {return}
-                
-                let query: [String: String] = [
-                    "apiKey": "ce1bd0fac4c8486393a3708cceaeb813",
-                    "q": searchString
-                ]
-            }
-        }
-
-        
+        requestNewPage(indexPaths: indexPaths)
     }
 }
 
