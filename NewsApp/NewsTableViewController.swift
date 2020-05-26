@@ -10,13 +10,16 @@ import UIKit
 import SafariServices
 
 class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
-        
+    @IBOutlet var activityIndicator: UIActivityIndicatorView!
+    
     var resultSearchController = UISearchController()
     
     var news = [Article]()
     
     var fromSegue: Bool = false
     var sources: String = ""
+    var loadInProgress = false
+    var serverNewsCount = 0
    
     func updateSearchResults(for searchController: UISearchController) {
         NSObject.cancelPreviousPerformRequests(withTarget: self)
@@ -61,6 +64,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                 let answer = try?
                     jsonDecoder.decode(ArticleServerAnswer.self, from: data) {
                 completion(answer.articles)
+                self.serverNewsCount = answer.totalResults
             } else {
                 print("Either no data was returned, or data was notserialized.")
                 completion(nil)
@@ -199,12 +203,23 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
 
 extension NewsTableViewController: UITableViewDataSourcePrefetching {
     func tableView(_ tableView: UITableView, prefetchRowsAt indexPaths: [IndexPath]) {
-        for indexPath in indexPaths {
-            if indexPath.row > 13 {
+        guard loadInProgress == false,
+                serverNewsCount != news.count else {return} //MARK: заменить на isAnimating?
+        if indexPaths.first!.row >= news.count - 1 {
+            loadInProgress = true
+            activityIndicator.startAnimating()
+            print("i need next page \(indexPaths )\n")
+            if !fromSegue { // From Search tab
+                guard let searchString = resultSearchController.searchBar.text,
+                    searchString != "" else {return}
                 
+                let query: [String: String] = [
+                    "apiKey": "ce1bd0fac4c8486393a3708cceaeb813",
+                    "q": searchString
+                ]
             }
         }
-        print("prefetch \(indexPaths )\n")
+
         
     }
 }

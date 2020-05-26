@@ -24,7 +24,6 @@ struct Channel: Codable {
     
     static let DocumentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
     static let ChannelsURL = DocumentsDirectory.appendingPathComponent("channels").appendingPathExtension("plist")
-//    static let FavoritesURL = DocumentsDirectory.appendingPathComponent("favorites").appendingPathExtension("plist")
     
 
 
