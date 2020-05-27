@@ -39,57 +39,38 @@ class ChannelsTableViewController: UITableViewController {
         activityIndicator.startAnimating()
         if let savedChannels = Channel.loadChannels() {
             channels = savedChannels
-            loadFavorites()
+            showFavorites()
         } else {
             UIApplication.shared.isNetworkActivityIndicatorVisible = true
-            fetchChannels { (serverChannels) in
+            Channel.fetchChannels { (serverChannels) in
                 DispatchQueue.main.async {
                     self.activityIndicator.stopAnimating()
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
                     guard let serverChannels = serverChannels else {
-                        self.loadFavorites()
+                        self.showFavorites()
                         self.showError("Can't load channels. Please check your internet connection.")
                         return
                     }
                     self.channels = serverChannels
                     Channel.saveChannels(self.channels)
-                    self.loadFavorites()
+                    self.showFavorites()
                 }
             }
         }        
     }
-    
-    func fetchChannels(completion: @escaping ([Channel]?) -> Void) {
-        UIApplication.shared.isNetworkActivityIndicatorVisible = true
-        let endpointURL = URL(string: "https://newsapi.org/v2/sources")!
-        let query = ["":""]
-        let url = endpointURL.withQueriesAndAPIkey(query)!
-        let task = URLSession.shared.dataTask(with: url) { (data,
-            response, error) in
-            let jsonDecoder = JSONDecoder()
-            if let data = data,
-                let answer = try?
-                    jsonDecoder.decode(ChanelServerAnswer.self, from: data) {
-                completion(answer.sources)
-            } else {
-                completion(nil)
-            }
-        }
-        task.resume()
-    }
-    
-    func loadFavorites(){
+        
+    func showFavorites(){
         favorites = channels.filter {$0.isFavorite == true}
         activityIndicator.stopAnimating()
         if favorites.count > 0,
                 firstAppear {
-            tabBarController!.selectedIndex = 1
+            tabBarController!.selectedIndex = 1 // Start with Channels tab if "Favorites" is empty
         }
         firstAppear = false
-        updateState()
+        updateNavBar()
     }
     
-    func updateState() {
+    func updateNavBar() {
         switch tabBarController!.selectedIndex {
         case 0:
             navigationItem.title = "Channels"
@@ -141,6 +122,10 @@ class ChannelsTableViewController: UITableViewController {
         return (page == .favorites) ? true : false
     }
     
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+    }
+    
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
@@ -150,7 +135,7 @@ class ChannelsTableViewController: UITableViewController {
             favorites.remove(at: indexPath.row)
             tableView.deleteRows(at: [indexPath], with: .fade)
             
-            updateState()
+            updateNavBar()
         }
     }
     

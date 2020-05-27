@@ -29,11 +29,11 @@
             </objects>
             <point key="canvasLocation" x="146" y="373"/>
         </scene>
-        <!--Navigation Controller-->
+        <!--Channels-->
         <scene sceneID="l63-5d-8jB">
             <objects>
                 <navigationController automaticallyAdjustsScrollViewInsets="NO" id="7kv-Pa-mUH" sceneMemberID="viewController">
-                    <tabBarItem key="tabBarItem" selectedImage="icons8-news-60" systemItem="mostViewed" id="3Jf-2a-tSw"/>
+                    <tabBarItem key="tabBarItem" title="Channels" image="icons8-news-60" id="3Jf-2a-tSw"/>
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" largeTitles="YES" id="Aaa-QD-T1W">
                         <rect key="frame" x="0.0" y="20" width="375" height="96"/>

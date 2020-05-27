@@ -19,7 +19,6 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     var fromSegue: Bool = false
     var sources: String = ""
     var loadInProgress = false
-    var serverNewsCount = 0
     var previousSearch = ""
    
     func updateSearchResults(for searchController: UISearchController) {
@@ -36,12 +35,10 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         previousSearch = searchString
         self.perform(#selector(self.sendRequest), with: query, afterDelay: 1.5)
     }
-    private func searchBarSearchButtonClicked(for searchController: UISearchController) {
-        print("click")
-    }
+    
     @objc func sendRequest(_ query: [String: String]) {
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
-        fetchNews(query: query, completion: { (serverNews) in
+        Article.fetchNews(query: query, completion: { (serverNews) in
             DispatchQueue.main.async {
                 guard let serverNews = serverNews else {
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
@@ -55,37 +52,10 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         })
     }
     
-    func fetchNews(query: [String: String],  completion: @escaping ([Article]?) -> Void) {
-        UIApplication.shared.isNetworkActivityIndicatorVisible = true
-        let endpointURL = URL(string: "https://newsapi.org/v2/everything")!
-        let url = endpointURL.withQueriesAndAPIkey(query)!
-        print("Request:\n\(url)")
-        let task = URLSession.shared.dataTask(with: url) { (data,
-            response, error) in
-            let jsonDecoder = JSONDecoder()
-            if let data = data,
-                let answer = try? jsonDecoder.decode(ArticleServerAnswer.self, from: data) {
-                    print("\nStatus: \(answer.status) Total results: \(answer.totalResults)")
-                    guard answer.totalResults > 0 else { // 0 articles on channel
-                    print("Warning: No articles on this channel")
-                    completion(nil)
-                    return
-                }
-                completion(answer.articles)
-                self.serverNewsCount = answer.totalResults
-            } else {
-                print("Request:\n\(url)\nResponse:\n\(String(describing: response))\nError:\n\(String(describing: error))")
-                completion(nil)
-            }
-        }
-        task.resume()
-    }
-    
-    
     func requestNewPage(indexPaths: [IndexPath]) {
         guard loadInProgress == false,
             news.count < 100, // FIXME: limit or free API subscription
-            serverNewsCount != news.count else {return}
+            Article.serverNewsCount != news.count else {return}
         if indexPaths.first!.row >= news.count - 1 {
             loadInProgress = true
             activityIndicator.startAnimating()
@@ -104,7 +74,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                     "page" : String(currentPage + 1)
                 ]
                 UIApplication.shared.isNetworkActivityIndicatorVisible = true
-                fetchNews(query: query, completion: { (serverNews) in
+                Article.fetchNews(query: query, completion: { (serverNews) in
                     DispatchQueue.main.async {
                         UIApplication.shared.isNetworkActivityIndicatorVisible = false
                         guard let serverNews = serverNews else {
@@ -125,7 +95,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                     "page" : String(currentPage + 1)
                 ]
                 UIApplication.shared.isNetworkActivityIndicatorVisible = true
-                fetchNews(query: query, completion: { (serverNews) in
+                Article.fetchNews(query: query, completion: { (serverNews) in
                     DispatchQueue.main.async {
                         UIApplication.shared.isNetworkActivityIndicatorVisible = false
                         guard let serverNews = serverNews else {
@@ -156,13 +126,6 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
 
     }
     
-    func fetchImage(from urlString: String, completionHandler: @escaping (_ data: Data?) -> ()) {
-        if let url = URL(string: urlString) {
-            let dataTask = URLSession.shared.dataTask(with: url) { (data, response, error) in completionHandler(data) }
-            dataTask.resume()
-        }
-    }
-    
     func downloadImages() {
         for index in news.indices {
             guard news[index].urlToImage != nil,
@@ -170,7 +133,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                 news[index].urlToImage != "",
                     news[index].image == nil else {continue}
             UIApplication.shared.isNetworkActivityIndicatorVisible = true
-            fetchImage(from: news[index].urlToImage!, completionHandler: { (imageData) in
+            Article.fetchImage(from: news[index].urlToImage!, completionHandler: { (imageData) in
                 if let data = imageData {
                     self.news[index].image = data
                     DispatchQueue.main.async {
@@ -193,18 +156,15 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        if fromSegue {
-            
-        } else {
-            
+        if !fromSegue {
             resultSearchController = ({
                 let controller = UISearchController(searchResultsController: nil)
                 controller.searchResultsUpdater = self
                 controller.obscuresBackgroundDuringPresentation = false
                 controller.searchBar.placeholder = "What are you looking for?"
-                //controller.dimsBackgroundDuringPresentation = false
-                //controller.hidesNavigationBarDuringPresentation = false
+                controller.searchBar.isHidden = false
                 navigationItem.searchController = controller
+                navigationItem.hidesSearchBarWhenScrolling = false
                 definesPresentationContext = true
                 
                 return controller
@@ -222,21 +182,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
                 "sources": sources
             ]
             sendRequest(query)
-        } else {
-
         }
-        navigationItem.hidesSearchBarWhenScrolling = false
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-        if fromSegue {
-            
-        } else {
-            
-        }
-        navigationItem.hidesSearchBarWhenScrolling = true
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -250,15 +196,12 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
         self.present(alert, animated: true, completion: nil)
     }
     
-    
-
     // MARK: - Table view data source
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
            return news.count
     }
 
-    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "articleCell", for: indexPath) as! ArticleCell
 
@@ -276,6 +219,7 @@ class NewsTableViewController: UITableViewController, UISearchResultsUpdating {
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
         let url = URL(string: news[indexPath.row].url!)!
         let config = SFSafariViewController.Configuration.init()
         config.entersReaderIfAvailable = true
